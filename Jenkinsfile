@@ -6,6 +6,10 @@ pipeline {
         jdk 'JDK 17'        // Podesi verziju JDK-a u Jenkins-u
     }
 
+    options {
+        buildDiscarder(logRotator(numToKeepStr: '3'))
+    }
+
     stages {
         stage('Checkout') {
             steps {
@@ -32,6 +36,7 @@ pipeline {
             }
         }
     }
+
 
     post {
         always {
