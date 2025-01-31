@@ -2,12 +2,14 @@ pipeline {
     agent any
 
     tools {
-        maven 'Maven 3.8.6' // Podesi verziju Maven-a u Jenkins-u
-        jdk 'JDK 17'        // Podesi verziju JDK-a u Jenkins-u
+        maven 'Maven 3.8.6' // Ensure this version is configured in Jenkins
+        jdk 'JDK 11'        // Ensure JDK version is configured in Jenkins
     }
 
-    options {
-        buildDiscarder(logRotator(numToKeepStr: '3'))
+    environment {
+        AWS_REGION = 'us-east-1'  // Change this to your AWS region
+        EB_APPLICATION_NAME = 'my-java-web-app' // AWS Beanstalk App Name
+        EB_ENVIRONMENT_NAME = 'my-java-web-app-env' // AWS Beanstalk Env Name
     }
 
     stages {
@@ -29,26 +31,27 @@ pipeline {
             }
         }
 
-        stage('Deploy') {
+        stage('Deploy to AWS Elastic Beanstalk') {
             steps {
-                sh 'echo "Deploying application..."'
-                sh 'cp target/basic-java-app-1.0-SNAPSHOT.jar /tmp/'
+                withAWS(credentials: 'aws-eb-creds', region: "${AWS_REGION}") {
+                    beanstalkDeploy(
+                        applicationName: "${EB_APPLICATION_NAME}",
+                        environmentName: "${EB_ENVIRONMENT_NAME}",
+                        versionLabelFormat: "build-${BUILD_NUMBER}",
+                        warFile: 'target/simple-java-web-app-1.0-SNAPSHOT.war'
+                    )
+                }
             }
         }
     }
 
-
     post {
-        always {
-            sh 'echo "Cleaning up..."'
-        }
-
         success {
-            echo 'Build succeeded!'
+            echo "Deployment to AWS Elastic Beanstalk succeeded!"
         }
 
         failure {
-            echo 'Build failed!'
+            echo "Deployment failed!"
         }
     }
 }
